@@ -4,6 +4,8 @@ import { getCustomRepository, getRepository } from 'typeorm';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
 
+import AppError from '../errors/AppError';
+
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
 
@@ -22,6 +24,17 @@ class CreateTransactionService {
     category,
   }: Request): Promise<Transaction> {
     const categoriesRepository = getRepository(Category);
+    const transactionsRepository = getCustomRepository(TransactionsRepository);
+
+    const { total } = await transactionsRepository.getBalance();
+
+    if (!['income', 'outcome'].includes(type)) {
+      throw new AppError('Invalid transaction type');
+    }
+
+    if (type === 'outcome' && value > total) {
+      throw new AppError('Outcome cannot be greater than total balance');
+    }
 
     const [categoryFound] = await categoriesRepository.find({
       where: { title: category },
@@ -35,8 +48,6 @@ class CreateTransactionService {
 
       category_id = newCategory.id;
     }
-
-    const transactionsRepository = getCustomRepository(TransactionsRepository);
 
     const transaction = transactionsRepository.create({
       title,
