@@ -1,5 +1,3 @@
-// import AppError from '../errors/AppError';
-
 import { getCustomRepository, getRepository } from 'typeorm';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
@@ -36,24 +34,20 @@ class CreateTransactionService {
       throw new AppError('Outcome cannot be greater than total balance');
     }
 
-    const [categoryFound] = await categoriesRepository.find({
+    let transactionCategory = await categoriesRepository.findOne({
       where: { title: category },
     });
 
-    let category_id = categoryFound ? categoryFound.id : undefined;
-
-    if (!categoryFound) {
-      const newCategory = categoriesRepository.create({ title: category });
-      await categoriesRepository.save(newCategory);
-
-      category_id = newCategory.id;
+    if (!transactionCategory) {
+      transactionCategory = categoriesRepository.create({ title: category });
+      await categoriesRepository.save(transactionCategory);
     }
 
     const transaction = transactionsRepository.create({
       title,
       value,
       type,
-      category_id,
+      category: transactionCategory,
     });
 
     await transactionsRepository.save(transaction);
